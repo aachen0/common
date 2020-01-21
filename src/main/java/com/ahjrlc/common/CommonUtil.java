@@ -1,18 +1,29 @@
 package com.ahjrlc.common;
 
-import com.ahjrlc.common.annotation.FieldDesc;
+import io.swagger.annotations.ApiModelProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.format.datetime.joda.DateTimeParser;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.nio.charset.Charset;
+import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * @author Administrator
+ * 跨应用通用工具集
+ *
+ * @author aachen0
+ * @date 2019年12月31日
  */
 public class CommonUtil {
+    private final static Logger log = LoggerFactory.getLogger(CommonUtil.class);
     private final static char[] CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
     private final static char[] CHARS_NUMBER = "0123456789".toCharArray();
     private final static Map<String, String> FILE_TYPE = new HashMap<>();
@@ -72,6 +83,12 @@ public class CommonUtil {
         return null;
     }
 
+    /**
+     * 获取文件byte数组包含文件类型部分，以十六禁止字符串返回
+     *
+     * @param b 文件二进制数组
+     * @return 前28位含文件类型信息的十六进制字符串形式
+     */
     private static String getFileHexString(byte[] b) {
         StringBuilder stringBuilder = new StringBuilder();
         int length = Math.max(b.length, 28);
@@ -116,10 +133,16 @@ public class CommonUtil {
 
     }
 
-    public static String inString(List powerIds) {
-        if (powerIds != null && powerIds.size() > 0) {
-            String s = powerIds.toString();
-            if (powerIds.get(0) instanceof Number) {
+    /**
+     * 将数组转换成mysql可用的in语法字符串，智能判断数据类型
+     *
+     * @param list 列表集合
+     * @return 包含括号的in字符串形式
+     */
+    public static String inString(List list) {
+        if (list != null && list.size() > 0) {
+            String s = list.toString();
+            if (list.get(0) instanceof Number) {
                 return s.replace('[', '(').replace(']', ')');
             } else {
                 return s.replace("[", "('").replace("]", "')").replace(",", "','").replace(" ", "");
@@ -131,36 +154,37 @@ public class CommonUtil {
     /**
      * 将下划线分割的命名转换为java的驼峰命名
      *
-     * @param _name_ 下划线名称
-     * @param isCap  首字母是否大写
+     * @param field_name 下划线名称
+     * @param upperCamel 首字母是否大写
      * @return 驼峰命名的实体类名
      */
-    public static String camel(String _name_, boolean isCap) {
-        if (_name_ != null && !"".equals(_name_.trim())) {
-            int size = _name_.length();
-            char[] chars = _name_.toCharArray();
+    public static String camel(String field_name, boolean upperCamel) {
+        if (field_name != null && !"".equals(field_name.trim())) {
+            int size = field_name.length();
+            char[] chars = field_name.toCharArray();
             String firstChar = chars[0] + "";
-            if (isCap) {
+            if (upperCamel) {
                 firstChar = firstChar.toUpperCase();
             }
-            StringBuffer entityName = new StringBuffer(firstChar);
+            StringBuffer camelName = new StringBuffer(firstChar);
             for (int i = 1; i < size; i++) {
                 if (chars[i] != '_') {
-                    entityName.append(chars[i]);
+                    camelName.append(chars[i]);
                 } else {
                     i++;
                     if (i < size) {
-                        entityName.append((chars[i] + "").toUpperCase());
+                        camelName.append((chars[i] + "").toUpperCase());
                     }
                 }
             }
-            return new String(entityName);
+            return new String(camelName);
         }
         return null;
     }
 
     /**
      * 比较某个对象的每个属性，并给出结果，如果有一个对象是null则返回null，否则返回比较结果
+     * 属性的描述共用swagger的FieldDesc注解
      *
      * @param o1 对象1
      * @param o2 对象2
@@ -183,7 +207,7 @@ public class CommonUtil {
             Collections.addAll(allFields, fields);
             Collections.addAll(allFields, superFields);
             for (Field field : allFields) {
-                FieldDesc annotation = field.getAnnotation(FieldDesc.class);
+                ApiModelProperty annotation = field.getAnnotation(ApiModelProperty.class);
                 String filedTitle = "";
                 if (annotation != null) {
                     filedTitle = annotation.value();
@@ -261,6 +285,11 @@ public class CommonUtil {
     }
 
 
+    /**
+     * 生成以当前时间为前缀的16位随机码
+     *
+     * @return
+     */
     public static String generateQueryCode() {
         String code = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
         code = code + generateRandomCode(CHARS, 4);
@@ -296,6 +325,12 @@ public class CommonUtil {
         }
     }
 
+    /**
+     * 将Date对象转换位Calendar对象
+     *
+     * @param date
+     * @return
+     */
     public static Calendar convertDate(Date date) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
@@ -326,5 +361,192 @@ public class CommonUtil {
             return objects.length < 1;
         }
         return false;
+    }
+
+    /**
+     * 从一个pojo对象集合中抽取对象的指定属性，放入一个新List中并返回
+     *
+     * @param c         对象集合
+     * @param fieldName 集合对象某个属性名称
+     * @param <T>       属性类型
+     * @return 属性值的List
+     */
+    public static <T> List<T> extractFieldList(Collection c, String fieldName) {
+        String getter = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+        return extractValueList(c, getter);
+    }
+
+    /**
+     * 从一个pojo对象集合中抽取对象的指定属性，放入一个新List中并返回
+     *
+     * @param c          对象集合
+     * @param methodName 集合对象获取某个值得方法名
+     * @param <T>        属性类型
+     * @return 属性值的List
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> List<T> extractValueList(Collection c, String methodName) {
+        List<T> list = new ArrayList<>();
+        if (!isEmpty(c)) {
+            for (Object o : c) {
+                if (o != null) {
+                    Class<?> clazz = o.getClass();
+                    try {
+                        Method method = clazz.getDeclaredMethod(methodName);
+                        Object field = method.invoke(o);
+                        list.add((T) field);
+                    } catch (NoSuchMethodException | IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException ite) {
+                        list.add(null);
+                    }
+                } else {
+                    list.add(null);
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * 将一个表示字节个数的整数自适应单位格式化输出,保留两位小数
+     *
+     * @param bytes 整数
+     * @return 格式化后的字符串
+     */
+    public static String formatBytes(Long bytes) {
+        String sizeString;
+        // 强转为float以免丢失数据
+        float tmp = bytes;
+        // 保留两位小数,不补零，如果需要补零，使用"#.00"
+        DecimalFormat df = new DecimalFormat("#.##");
+        int k = 1024;
+        if (bytes < 0) {
+            sizeString = "Wrong number!";
+        } else if (bytes < k) {
+            // byte
+            sizeString = df.format(tmp) + "B";
+        } else if (bytes < (long) k * k) {
+            // KB
+            sizeString = df.format(tmp / k) + "K";
+        } else if (bytes < (long) k * k * k) {
+            // MB
+            sizeString = df.format(tmp / k / k) + "M";
+        } else if (bytes < (long) k * k * k * k) {
+            // GB
+            sizeString = df.format(tmp / k / k / k) + "G";
+        } else if (bytes < (long) k * k * k * k * k) {
+            // TB
+            sizeString = df.format(tmp / k / k / k / k) + "T";
+        } else if (bytes < (long) k * k * k * k * k * k) {
+            // PB
+            sizeString = df.format(tmp / k / k / k / k / k) + "P";
+        } else {
+            // EB
+            sizeString = df.format(tmp / k / k / k / k / k / k) + "E";
+        }
+        return sizeString;
+    }
+
+    /**
+     * 模拟日志功能，将字符串按参数拼接成字符串
+     *
+     * @param content 含{}占位符的字符串内容
+     * @param args    字符串拼接参数
+     * @return 用参数依次替换占位符后的字符串
+     */
+    public static String mockLog(String content, Object... args) {
+        if (args != null && args.length > 0) {
+            for (Object arg : args) {
+                content = content.replaceFirst("\\{}", arg == null ? "null" : arg.toString());
+            }
+        }
+        return content;
+    }
+
+    /**
+     * 逻辑分页
+     *
+     * @param collection 集合
+     * @param page       页码
+     * @param limit      分页大小
+     * @return 逻辑分页集合
+     */
+    public static List pageHelper(List collection, Integer page, Integer limit) {
+        int length = collection.size();
+        int startIndex = (page - 1) * limit;
+        if (startIndex > length) {
+            collection.clear();
+            return collection;
+        }
+        int endIndex = page * limit;
+        endIndex = Math.min(endIndex, length);
+        return collection.subList(startIndex, endIndex);
+    }
+
+    public static String generatorQueryCode() {
+        String code = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
+        code = code + generatorRandomCode(CHARS, 4);
+        return code;
+    }
+
+    public static String verifyCode() {
+        return generatorRandomCode(CHARS_NUMBER, 6);
+    }
+
+    private static String generatorRandomCode(char[] chars, int size) {
+        if (size > 0) {
+            int length = chars.length;
+            StringBuilder code = new StringBuilder();
+            for (int i = 0; i < size; i++) {
+                code.append(chars[new Random().nextInt(length)]);
+            }
+            return new String(code);
+        } else {
+            return "";
+        }
+    }
+
+    public static String convertCharset(String src, Charset oriCharset, Charset destCharset) {
+        return new String(src.getBytes(oriCharset), destCharset);
+    }
+
+    /**
+     * 获取对象指定属性的值
+     *
+     * @param object    对象
+     * @param fieldName 字段
+     * @return 对象字段值字符串形式
+     */
+    public static String getKeyValue(Object object, String fieldName) {
+        String getter = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+        Class<?> clazz = object.getClass();
+        try {
+            Method method = clazz.getDeclaredMethod(getter);
+            Object field = method.invoke(object);
+            if (field != null) {
+                return field.toString();
+            }
+        } catch (NoSuchMethodException e) {
+            log.error("对象属性:{}不存在", fieldName);
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    public static Date parseDate(String dateTime) {
+        dateTime = dateTime.replaceAll("\\D", "/");
+        System.out.println(dateTime);
+        String[] dateFormats = {"MM/dd/yy/HH/mm/ss"
+                , "MM/dd/yyyy"};
+        for (String dateFormat : dateFormats) {
+            SimpleDateFormat format = new SimpleDateFormat(dateFormat);
+            try {
+                return format.parse(dateTime);
+            } catch (ParseException ignored) {
+            }
+        }
+        return null;
     }
 }

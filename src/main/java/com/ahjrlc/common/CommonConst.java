@@ -26,6 +26,11 @@ public interface CommonConst {
     String BANK_ACCOUNT_REGEX = "^([1-9]{1})(\\d{14}|\\d{18})$";
 
     /**
+     * 密码正则包含 数字,英文,字符中的两种以上，长度8-20
+     */
+    String PASSWORD_REGEX = "^(?![0-9]+$)(?![a-z]+$)(?![A-Z]+$)(?!([^(0-9a-zA-Z)])+$).{8,20}$";
+
+    /**
      * 登录常量
      */
     String LOGIN_SUCCESS = "登录成功";
@@ -35,6 +40,12 @@ public interface CommonConst {
     String IP_BANNED = "IP禁用";
     String LOGIN_CONCURRENT_ACCESS = "重复登录";
     String LOGIN_FAILED = "登录失败";
+    /**
+     * 系统配置字典名常量
+     */
+    String LOGIN_FAILED_TIMES_KEY = "LOGIN_FAILED_TIMES_KEY";
+    String LOGIN_IP_BANNED_MINUTES_KEY = "LOGIN_IP_BANNED_MINUTES_KEY";
+
     /**
      * 操作常量
      */
@@ -48,14 +59,6 @@ public interface CommonConst {
      */
     String DATE_PATTERN = "yyyy-MM-dd";
     String DATE_TIME_PATTERN = "yyyy-MM-dd HH:mm:ss";
-
-
-    /**
-     * 业务常量
-     */
-    String GRADE = "年级";
-    String STUDENT_TYPE = "学员类型";
-    String COMPANY_TYPE = "连别";
 
 
     /**

@@ -13,7 +13,7 @@ public class HttpServletUtil {
      * @param request HttpServletRequest参数
      * @return IP地址
      */
-    private String getIPAddress(HttpServletRequest request) {
+    public static String getIPAddress(HttpServletRequest request) {
         String ip = null;
         //X-Forwarded-For：Squid 服务代理
         String ipAddresses = request.getHeader("X-Forwarded-For");

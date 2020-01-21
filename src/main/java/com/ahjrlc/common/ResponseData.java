@@ -1,32 +1,34 @@
 package com.ahjrlc.common;
 
 /**
- * layui列表分页数据封装,兼容标准响应相间格式
+ * 标准响应包装类
  *
  * @author Administrator
  */
 public class ResponseData {
 
     /**
-     * 反馈代码
+     * 响应编码
      */
     private Integer code = 0;
 
     /**
-     * 附加信息
+     * 响应说明信息
      */
     private String msg;
+
     /**
-     * 查询结果集总记录数
-     */
-    private Long count;
-    /**
-     * 查询结果集对象集合
+     * 响应主体数据
      */
     private Object data;
 
     /**
-     * 执行的分页大小
+     * layui查询列表分页时所需记录总数
+     */
+    private Long count;
+
+    /**
+     * layui执行的分页大小回调
      */
     private Integer limit;
 
@@ -76,6 +78,10 @@ public class ResponseData {
     public ResponseData setLimit(Integer limit) {
         this.limit = limit;
         return this;
-
+    }
+    public ResponseData setError(EnumError error) {
+        code = error.getCode();
+        msg = error.getMsg();
+        return this;
     }
 }
