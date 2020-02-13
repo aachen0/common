@@ -241,6 +241,34 @@ public class CommonUtil {
         return null;
     }
 
+    /**
+     * 依据一个父类对象复制出一个子类对象
+     * @param parent 父类对象
+     * @param childClazz 子类类型
+     * @param <T> 父类类型
+     * @param <C> 子类类型
+     * @return 子类对象
+     */
+    public static <T, C extends T> C cloneChild(T parent, Class<C> childClazz) {
+        Class<?> parentClass = parent.getClass();
+        C child = null;
+        try {
+            child = childClazz.newInstance();
+            Field[] fields = parentClass.getDeclaredFields();
+            for (Field field : fields) {
+                String fieldName = field.getName();
+                String upperFiledName = fieldName.substring(0,1).toUpperCase()+fieldName.substring(1);
+                Method setter = childClazz.getMethod("set"+upperFiledName,field.getType());
+                Method getter = parentClass.getMethod("get"+upperFiledName);
+                setter.invoke(child,getter.invoke(parent));
+            }
+
+        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return child;
+    }
+
     private static class Change {
         private String fieldName;
         private String originValue;
