@@ -1,5 +1,6 @@
 package com.ahjrlc.common;
 
+import com.sun.istack.internal.NotNull;
 import io.swagger.annotations.ApiModelProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -241,11 +242,10 @@ public class CommonUtil {
 
     /**
      * 把source的属性复制给target并返回target,
-     *
-     * @param source 源对象
+     * @param  source 源对象
      * @param target 目标对象
      */
-    public static Object copyFields(Object source, Object target) {
+    public static Object copyFields(@NotNull Object source, @NotNull Object target) {
         Class<?> sourceClass = source.getClass();
         Class<?> targetClass = target.getClass();
         List<Field> fields = CommonUtil.getAllFields(sourceClass);
