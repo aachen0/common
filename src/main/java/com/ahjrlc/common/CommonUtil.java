@@ -3,7 +3,6 @@ package com.ahjrlc.common;
 import io.swagger.annotations.ApiModelProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.format.datetime.joda.DateTimeParser;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -13,7 +12,6 @@ import java.nio.charset.Charset;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
@@ -242,31 +240,37 @@ public class CommonUtil {
     }
 
     /**
-     * 依据一个父类对象复制出一个子类对象
-     * @param parent 父类对象
-     * @param childClazz 子类类型
-     * @param <T> 父类类型
-     * @param <C> 子类类型
-     * @return 子类对象
+     * 把source的属性复制给target并返回target,
+     *
+     * @param source 源对象
+     * @param target 目标对象
      */
-    public static <T, C extends T> C cloneChild(T parent, Class<C> childClazz) {
-        Class<?> parentClass = parent.getClass();
-        C child = null;
-        try {
-            child = childClazz.newInstance();
-            Field[] fields = parentClass.getDeclaredFields();
-            for (Field field : fields) {
-                String fieldName = field.getName();
-                String upperFiledName = fieldName.substring(0,1).toUpperCase()+fieldName.substring(1);
-                Method setter = childClazz.getMethod("set"+upperFiledName,field.getType());
-                Method getter = parentClass.getMethod("get"+upperFiledName);
-                setter.invoke(child,getter.invoke(parent));
+    public static Object copyFields(Object source, Object target) {
+        Class<?> sourceClass = source.getClass();
+        Class<?> targetClass = target.getClass();
+        List<Field> fields = CommonUtil.getAllFields(sourceClass);
+        for (Field field : fields) {
+            field.setAccessible(true);
+            String fieldName = field.getName();
+            String upperFiledName = fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+            try {
+//                Method getter = sourceClass.getDeclaredMethod("get" + upperFiledName);
+                Method setter = targetClass.getDeclaredMethod("set" + upperFiledName, field.getType());
+                setter.invoke(target, field.get(source));
+            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+                e.printStackTrace();
             }
-
-        } catch (InstantiationException | IllegalAccessException | NoSuchMethodException | InvocationTargetException e) {
-            e.printStackTrace();
         }
-        return child;
+        return target;
+    }
+
+    private static List<Field> getAllFields(Class clazz){
+        List<Field> fields = new ArrayList<>() ;
+        while (clazz != null && !"java.lang.object".equals(clazz.getName().toLowerCase())) {//当父类为null的时候说明到达了最上层的父类(Object类).
+            fields.addAll(Arrays.asList(clazz .getDeclaredFields()));
+            clazz = clazz.getSuperclass(); //得到父类,然后赋给自己
+        }
+        return fields;
     }
 
     private static class Change {
