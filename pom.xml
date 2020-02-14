@@ -8,7 +8,21 @@
     <artifactId>common</artifactId>
     <version>1.0.1</version>
     <packaging>jar</packaging>
+    <name>common</name>
     <dependencies>
+        <!--        指定🧊slf4j版本，解决版本冲突-->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>1.7.21</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>

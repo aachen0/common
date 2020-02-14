@@ -242,37 +242,62 @@ public class CommonUtil {
 
     /**
      * 把source的属性复制给target并返回target,
-     * @param  source 源对象
+     *
+     * @param source 源对象
      * @param target 目标对象
      */
     public static Object copyFields(@NotNull Object source, @NotNull Object target) {
         Class<?> sourceClass = source.getClass();
         Class<?> targetClass = target.getClass();
-        List<Field> fields = CommonUtil.getAllFields(sourceClass);
-        for (Field field : fields) {
+        List<Field> sourceFields = CommonUtil.getAllFields(sourceClass);
+        List<Field> targetFields = CommonUtil.getAllFields(targetClass);
+        for (Field field : sourceFields) {
             field.setAccessible(true);
             String fieldName = field.getName();
-            String upperFiledName = fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-            try {
-//                Method getter = sourceClass.getDeclaredMethod("get" + upperFiledName);
-                Method setter = targetClass.getDeclaredMethod("set" + upperFiledName, field.getType());
-                setter.invoke(target, field.get(source));
-            } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-                e.printStackTrace();
+            Field targetField = getFieldByName(targetFields, fieldName);
+            if (targetField != null) {
+                targetField.setAccessible(true);
+                try {
+                    targetField.set(target, field.get(source));
+                } catch (IllegalAccessException e) {
+                    log.warn("属性({})复制失败", fieldName);
+                }
             }
         }
         return target;
     }
 
-    private static List<Field> getAllFields(Class clazz){
-        List<Field> fields = new ArrayList<>() ;
+    /**
+     * @param fields 待查Field列表
+     * @param fieldName 查找的Field名
+     * @return  Field对象，如果未查到，返回null
+     */
+    private static Field getFieldByName(@NotNull List<Field> fields, @NotNull String fieldName) {
+        for (Field field : fields) {
+            if (fieldName.equals(field.getName())) {
+                return field;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 递归查出指定类包含所有父级类中Field
+     * @param clazz 查询类对象
+     * @return Field列表
+     */
+    private static List<Field> getAllFields(Class clazz) {
+        List<Field> fields = new ArrayList<>();
         while (clazz != null && !"java.lang.object".equals(clazz.getName().toLowerCase())) {//当父类为null的时候说明到达了最上层的父类(Object类).
-            fields.addAll(Arrays.asList(clazz .getDeclaredFields()));
+            fields.addAll(Arrays.asList(clazz.getDeclaredFields()));
             clazz = clazz.getSuperclass(); //得到父类,然后赋给自己
         }
         return fields;
     }
 
+    /**
+     * 两个对象变化描述
+     */
     private static class Change {
         private String fieldName;
         private String originValue;
