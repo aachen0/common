@@ -1,4 +1,4 @@
-package com.ahjrlc.common;
+package com.ahjrlc.common.consts;
 
 /**
  * 正则常量

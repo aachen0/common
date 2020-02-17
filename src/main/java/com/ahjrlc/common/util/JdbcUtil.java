@@ -1,4 +1,4 @@
-package com.ahjrlc.common;
+package com.ahjrlc.common.util;
 
 import java.util.regex.Pattern;
 

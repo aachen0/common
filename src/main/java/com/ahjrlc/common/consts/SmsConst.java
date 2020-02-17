@@ -1,4 +1,4 @@
-package com.ahjrlc.common;
+package com.ahjrlc.common.consts;
 
 /**
  * 应用使用的字符串常量

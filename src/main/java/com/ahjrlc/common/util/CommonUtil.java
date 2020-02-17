@@ -1,6 +1,6 @@
-package com.ahjrlc.common;
+package com.ahjrlc.common.util;
 
-import com.sun.istack.internal.NotNull;
+import com.ahjrlc.common.consts.CommonConst;
 import io.swagger.annotations.ApiModelProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,7 +246,7 @@ public class CommonUtil {
      * @param source 源对象
      * @param target 目标对象
      */
-    public static Object copyFields(@NotNull Object source, @NotNull Object target) {
+    public static Object copyFields(Object source, Object target) {
         Class<?> sourceClass = source.getClass();
         Class<?> targetClass = target.getClass();
         List<Field> sourceFields = CommonUtil.getAllFields(sourceClass);
@@ -268,11 +268,11 @@ public class CommonUtil {
     }
 
     /**
-     * @param fields 待查Field列表
+     * @param fields    待查Field列表
      * @param fieldName 查找的Field名
-     * @return  Field对象，如果未查到，返回null
+     * @return Field对象，如果未查到，返回null
      */
-    private static Field getFieldByName(@NotNull List<Field> fields, @NotNull String fieldName) {
+    private static Field getFieldByName(List<Field> fields, String fieldName) {
         for (Field field : fields) {
             if (fieldName.equals(field.getName())) {
                 return field;
@@ -283,6 +283,7 @@ public class CommonUtil {
 
     /**
      * 递归查出指定类包含所有父级类中Field
+     *
      * @param clazz 查询类对象
      * @return Field列表
      */

@@ -1,16 +1,19 @@
 package com.ahjrlc.common;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * 标准响应包装类
  *
  * @author Administrator
  */
-public class ResponseData {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class ResponseData implements Response{
 
     /**
      * 响应编码
      */
-    private Integer code = 0;
+    private int code;
 
     /**
      * 响应说明信息
@@ -32,7 +35,8 @@ public class ResponseData {
      */
     private Integer limit;
 
-    public Integer getCode() {
+    @Override
+    public int getCode() {
         return code;
     }
 
@@ -42,6 +46,7 @@ public class ResponseData {
 
     }
 
+    @Override
     public String getMsg() {
         return msg;
     }
@@ -61,6 +66,7 @@ public class ResponseData {
 
     }
 
+    @Override
     public Object getData() {
         return data;
     }
@@ -79,9 +85,9 @@ public class ResponseData {
         this.limit = limit;
         return this;
     }
-    public ResponseData setError(EnumError error) {
-        code = error.getCode();
-        msg = error.getMsg();
+    public ResponseData setStatus(Response status) {
+        code = status.getCode();
+        msg = status.getMsg();
         return this;
     }
 }
