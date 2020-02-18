@@ -297,6 +297,29 @@ public class CommonUtil {
     }
 
     /**
+     * 将一个集合中的元素替换称新的元素，并复制同名属性值
+     * @param collection 集合
+     * @param clazz 新元素类型
+     * @param <E> 新元素类型
+     * @return 新元素列表
+     */
+    public static <E> List<E> copyElementFields(Collection<?> collection, Class<E> clazz) {
+        List<E> target = new ArrayList<>();
+        if (collection != null) {
+            for (Object e : collection) {
+                try {
+                    target.add((E) copyFields(e, clazz.newInstance()));
+                } catch (InstantiationException ex) {
+                    ex.printStackTrace();
+                } catch (IllegalAccessException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+        return target;
+    }
+
+    /**
      * 两个对象变化描述
      */
     private static class Change {
