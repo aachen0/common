@@ -428,6 +428,7 @@ public class CommonUtil {
      * @param fieldName 集合对象某个属性名称
      * @param <T>       属性类型
      * @return 属性值的List
+     * @deprecated
      */
     public static <T> List<T> extractFieldList(Collection c, String fieldName) {
         String getter = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
@@ -437,12 +438,25 @@ public class CommonUtil {
     /**
      * 从一个pojo对象集合中抽取对象的指定属性，放入一个新List中并返回
      *
+     * @param c         对象集合
+     * @param fieldName 集合对象某个属性名称
+     * @param <T>       属性类型
+     * @return 属性值的List
+     */
+    public static <T> List<T> extractFieldList(Collection c, String fieldName, Class<T> clazz) {
+        String getter = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+        return extractValueList(c, getter, clazz);
+    }
+
+    /**
+     * 从一个pojo对象集合中抽取对象的指定属性，放入一个新List中并返回
+     *
      * @param c          对象集合
      * @param methodName 集合对象获取某个值得方法名
      * @param <T>        属性类型
      * @return 属性值的List
+     * @deprecated see override method
      */
-    @SuppressWarnings("unchecked")
     public static <T> List<T> extractValueList(Collection c, String methodName) {
         List<T> list = new ArrayList<>();
         if (!isEmpty(c)) {
@@ -453,6 +467,37 @@ public class CommonUtil {
                         Method method = clazz.getDeclaredMethod(methodName);
                         Object field = method.invoke(o);
                         list.add((T) field);
+                    } catch (NoSuchMethodException | IllegalAccessException e) {
+                        e.printStackTrace();
+                    } catch (InvocationTargetException ite) {
+                        list.add(null);
+                    }
+                } else {
+                    list.add(null);
+                }
+            }
+        }
+        return list;
+    }
+
+    /**
+     * 从一个pojo对象集合中抽取对象的指定属性，放入一个新List中并返回
+     *
+     * @param c          对象集合
+     * @param methodName 集合对象获取某个值得方法名
+     * @param <T>        属性类型
+     * @return 属性值的List
+     */
+    public static <T> List<T> extractValueList(Collection c, String methodName, Class<T> eClass) {
+        List<T> list = new ArrayList<>();
+        if (!isEmpty(c)) {
+            for (Object o : c) {
+                if (o != null) {
+                    Class<?> clazz = o.getClass();
+                    try {
+                        Method method = clazz.getDeclaredMethod(methodName);
+                        Object field = method.invoke(o);
+                        list.add(eClass.cast(field));
                     } catch (NoSuchMethodException | IllegalAccessException e) {
                         e.printStackTrace();
                     } catch (InvocationTargetException ite) {
@@ -606,5 +651,24 @@ public class CommonUtil {
             }
         }
         return null;
+    }
+
+    /**
+     * 将一个集合对象安全强转为List
+     *
+     * @param obj   集合对象
+     * @param clazz 集合元素类型
+     * @param <E>   集合元素类
+     * @return ArrayList对象
+     */
+    public static <E> List<E> castList(Object obj, Class<E> clazz) {
+        List<E> result = new ArrayList<>();
+        if (obj instanceof Collection<?>) {
+            for (Object o : (List<?>) obj) {
+                result.add(clazz.cast(o));
+            }
+            return result;
+        }
+        return result;
     }
 }
