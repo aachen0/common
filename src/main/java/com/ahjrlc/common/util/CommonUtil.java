@@ -269,33 +269,33 @@ public class CommonUtil {
             field.setAccessible(true);
 //            目标属性名
             String targetFieldName = field.getName();
-            Object targetFieldValue = valueMapper.get(targetFieldName);
-//            有指定值
-            if (targetFieldValue != null) {
+            String sourceFieldName = targetFieldName;
+            if (fieldMapper != null) {
+                String temp = fieldMapper.get(targetFieldName);
+                if (temp != null && !"".equals(temp)) {
+                    sourceFieldName = temp;
+                }
+            }
+            Field sourceField = getFieldByName(sourceFields, sourceFieldName);
+            if (sourceField != null) {
+                sourceField.setAccessible(true);
                 try {
-                    field.set(target, targetFieldValue);
+                    field.set(target, sourceField.get(source));
                 } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    log.warn("属性({})复制失败", sourceFieldName);
                 }
-            } else {
-                String sourceFieldName = targetFieldName;
-                if (fieldMapper != null) {
-                    String temp = fieldMapper.get(targetFieldName);
-                    if (temp != null && !"".equals(temp)) {
-                        sourceFieldName = temp;
-                    }
-                }
-                Field sourceField = getFieldByName(sourceFields, sourceFieldName);
-                if (sourceField != null) {
-                    sourceField.setAccessible(true);
+            }
+            if (valueMapper != null && valueMapper.size() > 0) {
+                Object targetFieldValue = valueMapper.get(targetFieldName);
+//            有指定值
+                if (targetFieldValue != null) {
                     try {
-                        field.set(target, sourceField.get(source));
+                        field.set(target, targetFieldValue);
                     } catch (IllegalAccessException e) {
-                        log.warn("属性({})复制失败", sourceFieldName);
+                        e.printStackTrace();
                     }
                 }
             }
-
         }
         return target;
     }
