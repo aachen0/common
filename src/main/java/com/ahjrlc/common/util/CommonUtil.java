@@ -247,22 +247,55 @@ public class CommonUtil {
      * @param target 目标对象
      */
     public static Object copyFields(Object source, Object target) {
+        return copyFields(source, target, null);
+    }
+
+    public static Object copyFields(Object source, Object target, Map<String, String> fieldMapper) {
+        return copyFields(source, target, fieldMapper, null);
+    }
+
+    /**
+     * 把source的属性复制给target并返回target,如果提供字段映射mapper则优先使用映射属性复制
+     *
+     * @param source 源对象
+     * @param target 目标对象
+     */
+    public static Object copyFields(Object source, Object target, Map<String, String> fieldMapper, Map<String, Object> valueMapper) {
         Class<?> sourceClass = source.getClass();
         Class<?> targetClass = target.getClass();
         List<Field> sourceFields = CommonUtil.getAllFields(sourceClass);
         List<Field> targetFields = CommonUtil.getAllFields(targetClass);
-        for (Field field : sourceFields) {
+        for (Field field : targetFields) {
             field.setAccessible(true);
-            String fieldName = field.getName();
-            Field targetField = getFieldByName(targetFields, fieldName);
-            if (targetField != null) {
-                targetField.setAccessible(true);
+//            目标属性名
+            String targetFieldName = field.getName();
+            Object targetFieldValue = valueMapper.get(targetFieldName);
+//            有指定值
+            if (targetFieldValue != null) {
                 try {
-                    targetField.set(target, field.get(source));
+                    field.set(target, targetFieldValue);
                 } catch (IllegalAccessException e) {
-                    log.warn("属性({})复制失败", fieldName);
+                    e.printStackTrace();
+                }
+            } else {
+                String sourceFieldName = targetFieldName;
+                if (fieldMapper != null) {
+                    String temp = fieldMapper.get(targetFieldName);
+                    if (temp != null && !"".equals(temp)) {
+                        sourceFieldName = temp;
+                    }
+                }
+                Field sourceField = getFieldByName(sourceFields, sourceFieldName);
+                if (sourceField != null) {
+                    sourceField.setAccessible(true);
+                    try {
+                        field.set(target, sourceField.get(source));
+                    } catch (IllegalAccessException e) {
+                        log.warn("属性({})复制失败", sourceFieldName);
+                    }
                 }
             }
+
         }
         return target;
     }
@@ -298,17 +331,35 @@ public class CommonUtil {
 
     /**
      * 将一个集合中的元素替换称新的元素，并复制同名属性值
+     *
      * @param collection 集合
-     * @param clazz 新元素类型
-     * @param <E> 新元素类型
+     * @param clazz      新元素类型
+     * @param <E>        新元素类型
      * @return 新元素列表
      */
     public static <E> List<E> copyElementFields(Collection<?> collection, Class<E> clazz) {
+        return copyElementFields(collection, clazz, null);
+    }
+
+    public static <E> List<E> copyElementFields(Collection<?> collection, Class<E> clazz, Map<String, String> fieldMapper) {
+        return copyElementFields(collection, clazz, fieldMapper, null);
+    }
+
+    /**
+     * 将一个集合中的元素替换称新的元素，并复制同名属性值
+     *
+     * @param collection  集合
+     * @param clazz       新元素类型
+     * @param fieldMapper 两个元素属性关系映射，key为源字段名，value为目标字段名
+     * @param <E>         新元素类型
+     * @return 新元素列表
+     */
+    public static <E> List<E> copyElementFields(Collection<?> collection, Class<E> clazz, Map<String, String> fieldMapper, Map<String, Object> valueMapper) {
         List<E> target = new ArrayList<>();
         if (collection != null) {
             for (Object e : collection) {
                 try {
-                    target.add((E) copyFields(e, clazz.newInstance()));
+                    target.add((E) copyFields(e, clazz.newInstance(), fieldMapper, valueMapper));
                 } catch (InstantiationException ex) {
                     ex.printStackTrace();
                 } catch (IllegalAccessException ex) {
@@ -317,6 +368,22 @@ public class CommonUtil {
             }
         }
         return target;
+    }
+
+    /**
+     * 过滤关键词首尾空格后添加首位"%"返回，如果为空串则返回null
+     *
+     * @param search 前台传递的非安全字符串
+     * @return 可以直接like使用的模糊查询字符串
+     */
+    public static String likable(String search) {
+        if (search != null) {
+            search = search.trim();
+            if (!"".equals(search)) {
+                return "%" + search + "%";
+            }
+        }
+        return null;
     }
 
     /**
