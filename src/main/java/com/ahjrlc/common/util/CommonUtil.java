@@ -1,6 +1,7 @@
 package com.ahjrlc.common.util;
 
 import com.ahjrlc.common.consts.CommonConst;
+import com.sun.istack.internal.NotNull;
 import io.swagger.annotations.ApiModelProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -246,11 +247,11 @@ public class CommonUtil {
      * @param source 源对象
      * @param target 目标对象
      */
-    public static Object copyFields(Object source, Object target) {
+    public static <T> T copyFields(Object source, T target) {
         return copyFields(source, target, null);
     }
 
-    public static Object copyFields(Object source, Object target, Map<String, String> fieldMapper) {
+    public static <T> T copyFields(Object source, T target, Map<String, String> fieldMapper) {
         return copyFields(source, target, fieldMapper, null);
     }
 
@@ -260,7 +261,10 @@ public class CommonUtil {
      * @param source 源对象
      * @param target 目标对象
      */
-    public static Object copyFields(Object source, Object target, Map<String, String> fieldMapper, Map<String, Object> valueMapper) {
+    public static<T> T copyFields( Object source, T target, Map<String, String> fieldMapper, Map<String, Object> valueMapper) {
+        if (source==null){
+            return target;
+        }
         Class<?> sourceClass = source.getClass();
         Class<?> targetClass = target.getClass();
         List<Field> sourceFields = CommonUtil.getAllFields(sourceClass);

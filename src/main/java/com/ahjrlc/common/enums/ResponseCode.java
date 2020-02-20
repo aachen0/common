@@ -23,6 +23,7 @@ public enum ResponseCode implements Response {
     REDIS_ERROR(500003, "Redis服务故障"),
     //    业务异常
     TOKEN_PARSE_ERROR(401001, "登录凭证已过期，请重新登录"),
+    TOKEN_NOT_FOUND(401003, "登录凭证无法获取，请重新登录"),
     TOKEN_ERROR(401001, "登录凭证已过期，请重新登录"),
     ACCOUNT_ERROR(401001, "该账号异常，请联系运营人员"),
     ACCOUNT_LOCK_ERROR(401001, "该用户已被锁定，请联系运营人员"),
