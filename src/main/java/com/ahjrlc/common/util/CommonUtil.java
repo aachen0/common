@@ -1,11 +1,12 @@
 package com.ahjrlc.common.util;
 
+import com.ahjrlc.common.ArrayListPlus;
 import com.ahjrlc.common.consts.CommonConst;
-import com.sun.istack.internal.NotNull;
 import io.swagger.annotations.ApiModelProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.validation.constraints.NotNull;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -26,74 +27,39 @@ public class CommonUtil {
     private final static Logger log = LoggerFactory.getLogger(CommonUtil.class);
     private final static char[] CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray();
     private final static char[] CHARS_NUMBER = "0123456789".toCharArray();
-    private final static Map<String, String> FILE_TYPE = new HashMap<>();
-
-    static {
-        FILE_TYPE.put("jpg", "FFD8FF"); //JPEG (jpg)
-        FILE_TYPE.put("png", "89504E47");  //PNG (png)
-        FILE_TYPE.put("gif", "47494638");  //GIF (gif)
-        FILE_TYPE.put("tif", "49492A00");  //TIFF (tif)
-        FILE_TYPE.put("bmp", "424D"); //Windows Bitmap (bmp)
-        FILE_TYPE.put("dwg", "41433130"); //CAD (dwg)
-        FILE_TYPE.put("html", "68746D6C3E");  //HTML (html)
-        FILE_TYPE.put("rtf", "7B5C727466");  //Rich Text Format (rtf)
-        FILE_TYPE.put("xml", "3C3F786D6C");
-        FILE_TYPE.put("zip", "504B0304");
-        FILE_TYPE.put("rar", "52617221");
-        FILE_TYPE.put("psd", "38425053");  //Photoshop (psd)
-        FILE_TYPE.put("eml", "44656C69766572792D646174653A");  //Email [thorough only] (eml)
-        FILE_TYPE.put("dbx", "CFAD12FEC5FD746F");  //Outlook Express (dbx)
-        FILE_TYPE.put("pst", "2142444E");  //Outlook (pst)
-        FILE_TYPE.put("xls", "D0CF11E0");  //MS Word
-        FILE_TYPE.put("doc", "D0CF11E0");  //MS Excel 注意：word 和 excel的文件头一样
-        FILE_TYPE.put("mdb", "5374616E64617264204A");  //MS Access (mdb)
-        FILE_TYPE.put("wpd", "FF575043"); //WordPerfect (wpd)
-        FILE_TYPE.put("eps", "252150532D41646F6265");
-        FILE_TYPE.put("ps", "252150532D41646F6265");
-        FILE_TYPE.put("pdf", "255044462D312E");  //Adobe Acrobat (pdf)
-        FILE_TYPE.put("qdf", "AC9EBD8F");  //Quicken (qdf)
-        FILE_TYPE.put("pwl", "E3828596");  //Windows Password (pwl)
-        FILE_TYPE.put("wav", "57415645");  //Wave (wav)
-        FILE_TYPE.put("avi", "41564920");
-        FILE_TYPE.put("ram", "2E7261FD");  //Real Audio (ram)
-        FILE_TYPE.put("rm", "2E524D46");  //Real Media (rm)
-        FILE_TYPE.put("mpg", "000001BA");  //
-        FILE_TYPE.put("mov", "6D6F6F76");  //Quicktime (mov)
-        FILE_TYPE.put("asf", "3026B2758E66CF11"); //Windows Media (asf)
-        FILE_TYPE.put("mid", "4D546864");  //MIDI (mid)
-    }
-
 
     /**
-     * 根据一个文件的byte数组解析文件类型，如果解析失败，返回null
+     * 根据一个文件的byte数组解析文件类型，如果解析失败，返回unknow
      *
      * @param fileBytes 文件数组
      * @return 文件类型
      */
-    public static String getFileType(byte[] fileBytes) {
-        if (fileBytes != null && fileBytes.length > 0) {
+    public static @NotNull String getFileType(@NotNull byte[] fileBytes) {
+        if (fileBytes.length > 0) {
             String fileTypeHex = getFileHexString(fileBytes).toUpperCase();
-            for (Map.Entry<String, String> entry : FILE_TYPE.entrySet()) {
+            for (Map.Entry<String, String> entry : FileTypeMap.HEX_MAP.entrySet()) {
                 String fileTypeHexValue = entry.getValue();
                 if (fileTypeHex.startsWith(fileTypeHexValue)) {
                     return entry.getKey();
                 }
             }
         }
-        return null;
+        return "unknown";
     }
 
     /**
-     * 获取文件byte数组包含文件类型部分，以十六禁止字符串返回
+     * 获取文件byte数组包含文件类型部分，以十六进制字符串返回
      *
-     * @param b 文件二进制数组
+     * @param fileBytes 文件二进制数组
      * @return 前28位含文件类型信息的十六进制字符串形式
      */
-    private static String getFileHexString(byte[] b) {
+    private static String getFileHexString(byte[] fileBytes) {
+//        包含文件类型的字节长度
+        int typeLength = 28;
         StringBuilder stringBuilder = new StringBuilder();
-        int length = Math.max(b.length, 28);
+        int length = Math.max(fileBytes.length, typeLength);
         for (int i = 0; i < length; i++) {
-            int v = b[i] & 0xFF;
+            int v = fileBytes[i] & 0xFF;
             String hv = Integer.toHexString(v);
             if (hv.length() < 2) {
                 stringBuilder.append(0);
@@ -112,25 +78,20 @@ public class CommonUtil {
      * @param mosaicLength 指定马赛克长度
      * @return 打码后打字符串
      */
-    public static String mosaic(CharSequence oriString, char mosaic, int mosaicLength) {
-        if (oriString != null) {
-            int totalLength = oriString.length();
-            mosaicLength = Math.min(mosaicLength, totalLength);
-            int startIndex = Math.round((totalLength - mosaicLength) / 2.0f);
-            int endIndex = startIndex + mosaicLength;
-            StringBuffer sb = new StringBuffer();
-            for (int i = 0; i < totalLength; i++) {
-                if (i >= startIndex && i < endIndex) {
-                    sb.append(mosaic);
-                } else {
-                    sb.append(oriString.charAt(i));
-                }
+    public static @NotNull String mosaic(@NotNull CharSequence oriString, @NotNull char mosaic, @NotNull int mosaicLength) {
+        int totalLength = oriString.length();
+        mosaicLength = Math.min(mosaicLength, totalLength);
+        int startIndex = Math.round((totalLength - mosaicLength) / 2.0f);
+        int endIndex = startIndex + mosaicLength;
+        StringBuffer sb = new StringBuffer();
+        for (int i = 0; i < totalLength; i++) {
+            if (i >= startIndex && i < endIndex) {
+                sb.append(mosaic);
+            } else {
+                sb.append(oriString.charAt(i));
             }
-            return new String(sb);
-        } else {
-            return null;
         }
-
+        return new String(sb);
     }
 
     /**
@@ -154,14 +115,14 @@ public class CommonUtil {
     /**
      * 将下划线分割的命名转换为java的驼峰命名
      *
-     * @param field_name 下划线名称
-     * @param upperCamel 首字母是否大写
+     * @param underLineName 下划线名称
+     * @param upperCamel    首字母是否大写
      * @return 驼峰命名的实体类名
      */
-    public static String camel(String field_name, boolean upperCamel) {
-        if (field_name != null && !"".equals(field_name.trim())) {
-            int size = field_name.length();
-            char[] chars = field_name.toCharArray();
+    public static String camel(@NotNull String underLineName, @NotNull boolean upperCamel) {
+        if (!"".equals(underLineName.trim())) {
+            int size = underLineName.length();
+            char[] chars = underLineName.toCharArray();
             String firstChar = chars[0] + "";
             if (upperCamel) {
                 firstChar = firstChar.toUpperCase();
@@ -179,7 +140,7 @@ public class CommonUtil {
             }
             return new String(camelName);
         }
-        return null;
+        return "";
     }
 
     /**
@@ -190,55 +151,52 @@ public class CommonUtil {
      * @param o2 对象2
      * @return 差异列表
      */
-    public static List<Change> compare(Object o1, Object o2) {
-        if (o1 != null && o2 != null) {
-            List<Change> changes = new ArrayList<>();
-            Class<?> srcClazz = o1.getClass();
-            if (!srcClazz.getName().equals(o2.getClass().getName())) {
-                Change change = new Change();
-                change.fieldName = "不同对象，无法比较";
-                changes.add(change);
-                return changes;
-            }
-            Class superclass = srcClazz.getSuperclass();
-            Field[] fields = srcClazz.getDeclaredFields();
-            Field[] superFields = superclass.getDeclaredFields();
-            List<Field> allFields = new ArrayList<>();
-            Collections.addAll(allFields, fields);
-            Collections.addAll(allFields, superFields);
-            for (Field field : allFields) {
-                ApiModelProperty annotation = field.getAnnotation(ApiModelProperty.class);
-                String filedTitle = "";
-                if (annotation != null) {
-                    filedTitle = annotation.value();
-                }
-                String fieldName = field.getName();
-                String getterName = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-                try {
-                    Method method;
-                    try {
-                        method = srcClazz.getMethod(getterName);
-                    } catch (NoSuchMethodException e) {
-                        continue;
-                    }
-                    Object srcObject = method.invoke(o1);
-                    String oriValue = srcObject == null ? "null" : toStringPlus(srcObject);
-                    Object targetObject = method.invoke(o2);
-                    String newValue = targetObject == null ? "null" : toStringPlus(targetObject);
-                    if (!oriValue.equals(newValue)) {
-                        Change change = new Change();
-                        change.setFieldName(filedTitle);
-                        change.setOriginValue(oriValue);
-                        change.setNewValue(newValue);
-                        changes.add(change);
-                    }
-                } catch (InvocationTargetException | IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
+    public static @NotNull List<Change> compare(@NotNull Object o1, @NotNull Object o2) {
+        List<Change> changes = new ArrayList<>();
+        Class<?> srcClazz = o1.getClass();
+        if (!srcClazz.getName().equals(o2.getClass().getName())) {
+            Change change = new Change();
+            change.fieldName = "不同对象，无法比较";
+            changes.add(change);
             return changes;
         }
-        return null;
+        Class superclass = srcClazz.getSuperclass();
+        Field[] fields = srcClazz.getDeclaredFields();
+        Field[] superFields = superclass.getDeclaredFields();
+        List<Field> allFields = new ArrayList<>();
+        Collections.addAll(allFields, fields);
+        Collections.addAll(allFields, superFields);
+        for (Field field : allFields) {
+            ApiModelProperty annotation = field.getAnnotation(ApiModelProperty.class);
+            String filedTitle = "";
+            if (annotation != null) {
+                filedTitle = annotation.value();
+            }
+            String fieldName = field.getName();
+            String getterName = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+            try {
+                Method method;
+                try {
+                    method = srcClazz.getMethod(getterName);
+                } catch (NoSuchMethodException e) {
+                    continue;
+                }
+                Object srcObject = method.invoke(o1);
+                String oriValue = srcObject == null ? "null" : toStringPlus(srcObject);
+                Object targetObject = method.invoke(o2);
+                String newValue = targetObject == null ? "null" : toStringPlus(targetObject);
+                if (!oriValue.equals(newValue)) {
+                    Change change = new Change();
+                    change.setFieldName(filedTitle);
+                    change.setOriginValue(oriValue);
+                    change.setNewValue(newValue);
+                    changes.add(change);
+                }
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        return changes;
     }
 
     /**
@@ -247,24 +205,26 @@ public class CommonUtil {
      * @param source 源对象
      * @param target 目标对象
      */
-    public static <T> T copyFields(Object source, T target) {
+    public static <T> @NotNull T copyFields(@NotNull Object source, @NotNull T target) {
         return copyFields(source, target, null);
     }
 
-    public static <T> T copyFields(Object source, T target, Map<String, String> fieldMapper) {
+    public static <T> @NotNull T copyFields(@NotNull Object source, @NotNull T target, Map<String, String> fieldMapper) {
         return copyFields(source, target, fieldMapper, null);
+    }
+
+    public static <T> @NotNull T copyFields(@NotNull Object source, @NotNull T target, Map<String, String> fieldMapper, Map<String, Object> valueMapper) {
+        return copyFields(source, target, fieldMapper, valueMapper, null);
     }
 
     /**
      * 把source的属性复制给target并返回target,如果提供字段映射mapper则优先使用映射属性复制
      *
-     * @param source 源对象
-     * @param target 目标对象
+     * @param source       源对象
+     * @param target       目标对象
+     * @param filterFields 希望屏蔽的属性列表
      */
-    public static<T> T copyFields( Object source, T target, Map<String, String> fieldMapper, Map<String, Object> valueMapper) {
-        if (source==null){
-            return target;
-        }
+    public static <T> @NotNull T copyFields(@NotNull Object source, @NotNull T target, Map<String, String> fieldMapper, Map<String, Object> valueMapper, List<String> filterFields) {
         Class<?> sourceClass = source.getClass();
         Class<?> targetClass = target.getClass();
         List<Field> sourceFields = CommonUtil.getAllFields(sourceClass);
@@ -273,6 +233,14 @@ public class CommonUtil {
             field.setAccessible(true);
 //            目标属性名
             String targetFieldName = field.getName();
+//            隐藏属性的值
+            if (filterFields != null && filterFields.contains(targetFieldName)) {
+                continue;
+            }
+//            跳过属性
+            if ("serialVersionUID".equals(targetFieldName)) {
+                continue;
+            }
             String sourceFieldName = targetFieldName;
             if (fieldMapper != null) {
                 String temp = fieldMapper.get(targetFieldName);
@@ -280,13 +248,14 @@ public class CommonUtil {
                     sourceFieldName = temp;
                 }
             }
-            Field sourceField = getFieldByName(sourceFields, sourceFieldName);
+            Field sourceField = findFieldByName(sourceFields, sourceFieldName);
             if (sourceField != null) {
                 sourceField.setAccessible(true);
                 try {
                     field.set(target, sourceField.get(source));
                 } catch (IllegalAccessException e) {
                     log.warn("属性({})复制失败", sourceFieldName);
+                    e.printStackTrace();
                 }
             }
             if (valueMapper != null && valueMapper.size() > 0) {
@@ -309,7 +278,7 @@ public class CommonUtil {
      * @param fieldName 查找的Field名
      * @return Field对象，如果未查到，返回null
      */
-    private static Field getFieldByName(List<Field> fields, String fieldName) {
+    private static Field findFieldByName(@NotNull List<Field> fields, @NotNull String fieldName) {
         for (Field field : fields) {
             if (fieldName.equals(field.getName())) {
                 return field;
@@ -324,9 +293,11 @@ public class CommonUtil {
      * @param clazz 查询类对象
      * @return Field列表
      */
-    private static List<Field> getAllFields(Class clazz) {
+    private static @NotNull List<Field> getAllFields(@NotNull Class clazz) {
         List<Field> fields = new ArrayList<>();
-        while (clazz != null && !"java.lang.object".equals(clazz.getName().toLowerCase())) {//当父类为null的时候说明到达了最上层的父类(Object类).
+        final String objectClazzName = "java.lang.object";
+        while (!objectClazzName.equals(clazz.getName().toLowerCase())) {
+            //当父类为null的时候说明到达了最上层的父类(Object类).
             fields.addAll(Arrays.asList(clazz.getDeclaredFields()));
             clazz = clazz.getSuperclass(); //得到父类,然后赋给自己
         }
@@ -341,51 +312,50 @@ public class CommonUtil {
      * @param <E>        新元素类型
      * @return 新元素列表
      */
-    public static <E> List<E> copyElementFields(Collection<?> collection, Class<E> clazz) {
+    public static <E> @NotNull List<E> copyElementFields(@NotNull Collection<?> collection, @NotNull Class<E> clazz) {
         return copyElementFields(collection, clazz, null);
     }
 
-    public static <E> List<E> copyElementFields(Collection<?> collection, Class<E> clazz, Map<String, String> fieldMapper) {
+    public static <E> @NotNull List<E> copyElementFields(@NotNull Collection<?> collection, @NotNull Class<E> clazz, Map<String, String> fieldMapper) {
         return copyElementFields(collection, clazz, fieldMapper, null);
     }
 
     /**
-     * 将一个集合中的元素替换称新的元素，并复制同名属性值
+     * 将一个集合中的元素替换为指定类型元素，并按连个映射表传递属性值，如果未找到映射，则按相同属性名传值
      *
      * @param collection  集合
      * @param clazz       新元素类型
-     * @param fieldMapper 两个元素属性关系映射，key为源字段名，value为目标字段名
+     * @param fieldMapper 集合源元素与目标元素属性名关系映射，key为源元素属性名，value为目标元素属性名
+     * @param valueMapper 新元素属性指定值映射表，key为目标元素属性名，value为目标元素属性指定值
      * @param <E>         新元素类型
      * @return 新元素列表
      */
-    public static <E> List<E> copyElementFields(Collection<?> collection, Class<E> clazz, Map<String, String> fieldMapper, Map<String, Object> valueMapper) {
+    public static <E> List<E> copyElementFields(@NotNull Collection collection, @NotNull Class<E> clazz, Map<String, String> fieldMapper, Map<String, Object> valueMapper) {
         List<E> target = new ArrayList<>();
-        if (collection != null) {
-            for (Object e : collection) {
-                try {
-                    target.add((E) copyFields(e, clazz.newInstance(), fieldMapper, valueMapper));
-                } catch (InstantiationException ex) {
-                    ex.printStackTrace();
-                } catch (IllegalAccessException ex) {
-                    ex.printStackTrace();
-                }
+        for (Object e : collection) {
+            try {
+                target.add(copyFields(e, clazz.newInstance(), fieldMapper, valueMapper));
+            } catch (InstantiationException | IllegalAccessException ex) {
+                log.warn(ex.getMessage());
+                ex.printStackTrace();
             }
         }
         return target;
     }
 
-    /**
-     * 过滤关键词首尾空格后添加首位"%"返回，如果为空串则返回null
-     *
-     * @param search 前台传递的非安全字符串
-     * @return 可以直接like使用的模糊查询字符串
-     */
-    public static String likable(String search) {
-        if (search != null) {
-            search = search.trim();
-            if (!"".equals(search)) {
-                return "%" + search + "%";
+    public static <T> T getElementById(List<T> c, Integer id, Class<T> clazz) {
+        Field idField = null;
+        try {
+            idField = clazz.getDeclaredField("id");
+            idField.setAccessible(true);
+            for (T t : c) {
+                int tId = (int) idField.get(t);
+                if (tId == id) {
+                    return t;
+                }
             }
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
         }
         return null;
     }
@@ -396,20 +366,21 @@ public class CommonUtil {
     private static class Change {
         private String fieldName;
         private String originValue;
+        private String newValue;
 
-        public String getFieldName() {
+        String getFieldName() {
             return fieldName;
         }
 
-        public void setFieldName(String fieldName) {
+        void setFieldName(String fieldName) {
             this.fieldName = fieldName;
         }
 
-        public String getOriginValue() {
+        String getOriginValue() {
             return originValue;
         }
 
-        public void setOriginValue(String originValue) {
+        void setOriginValue(String originValue) {
             this.originValue = originValue;
         }
 
@@ -417,11 +388,9 @@ public class CommonUtil {
             return newValue;
         }
 
-        public void setNewValue(String newValue) {
+        void setNewValue(String newValue) {
             this.newValue = newValue;
         }
-
-        private String newValue;
     }
 
     private static String toStringPlus(Object o) {
@@ -522,8 +491,9 @@ public class CommonUtil {
      * @param fieldName 集合对象某个属性名称
      * @param <T>       属性类型
      * @return 属性值的List
-     * @deprecated
+     * @deprecated 采用clazz参数传递
      */
+    @Deprecated
     public static <T> List<T> extractFieldList(Collection c, String fieldName) {
         String getter = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
         return extractValueList(c, getter);
@@ -669,28 +639,46 @@ public class CommonUtil {
      * @param limit      分页大小
      * @return 逻辑分页集合
      */
-    public static List pageHelper(List collection, Integer page, Integer limit) {
+    public static <T> List<T> pageHelper(List<T> collection, Integer page, Integer limit) {
+        ArrayListPlus<T> result = new ArrayListPlus<>();
         int length = collection.size();
+        result.setTotal(length);
         int startIndex = (page - 1) * limit;
-        if (startIndex > length) {
-            collection.clear();
-            return collection;
-        }
         int endIndex = page * limit;
         endIndex = Math.min(endIndex, length);
-        return collection.subList(startIndex, endIndex);
+        for (int i = startIndex; i < endIndex; i++) {
+            result.add(collection.get(i));
+        }
+        return result;
     }
 
+    /**
+     * 简单查询码实现
+     *
+     * @return
+     */
     public static String generatorQueryCode() {
         String code = new SimpleDateFormat("yyyyMMddHHmm").format(new Date());
         code = code + generatorRandomCode(CHARS, 4);
         return code;
     }
 
+    /**
+     * 6位数字验证码实现
+     *
+     * @return
+     */
     public static String verifyCode() {
         return generatorRandomCode(CHARS_NUMBER, 6);
     }
 
+    /**
+     * 使用提供的字符数组生成指定长度的随机序列
+     *
+     * @param chars 字符数组
+     * @param size  长度
+     * @return
+     */
     private static String generatorRandomCode(char[] chars, int size) {
         if (size > 0) {
             int length = chars.length;
@@ -704,6 +692,14 @@ public class CommonUtil {
         }
     }
 
+    /**
+     * 转换字符串的编码方式
+     *
+     * @param src
+     * @param oriCharset
+     * @param destCharset
+     * @return
+     */
     public static String convertCharset(String src, Charset oriCharset, Charset destCharset) {
         return new String(src.getBytes(oriCharset), destCharset);
     }
@@ -715,7 +711,7 @@ public class CommonUtil {
      * @param fieldName 字段
      * @return 对象字段值字符串形式
      */
-    public static String getKeyValue(Object object, String fieldName) {
+    public static String getFieldValue(Object object, String fieldName) {
         String getter = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
         Class<?> clazz = object.getClass();
         try {
@@ -732,6 +728,12 @@ public class CommonUtil {
         return "";
     }
 
+    /**
+     * 解析时间字符串为时间对象
+     *
+     * @param dateTime
+     * @return
+     */
     public static Date parseDate(String dateTime) {
         dateTime = dateTime.replaceAll("\\D", "/");
         System.out.println(dateTime);
@@ -757,12 +759,12 @@ public class CommonUtil {
      */
     public static <E> List<E> castList(Object obj, Class<E> clazz) {
         List<E> result = new ArrayList<>();
-        if (obj instanceof Collection<?>) {
-            for (Object o : (List<?>) obj) {
+        if (obj instanceof Collection) {
+            for (Object o : (Collection) obj) {
                 result.add(clazz.cast(o));
             }
-            return result;
         }
         return result;
     }
+
 }
