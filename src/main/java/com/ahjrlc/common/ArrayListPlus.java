@@ -11,7 +11,7 @@ public class ArrayListPlus<E> extends ArrayList<E> {
     /**
      * 分页时存放分页前记录数，和pagehelper中的total兼容
      */
-    long total;
+    private long total;
 
     public ArrayListPlus<E> append(E e) {
         super.add(e);
